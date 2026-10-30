@@ -41,7 +41,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(MESSAGES['start'], parse_mode='Markdown')
 
 def extract_youtube_url(text: str) -> str:
-    # Supports both normal videos and YouTube Shorts
     match = re.search(r'(https?://(?:www\.)?(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/[^\s]+))', text)
     return match.group(0) if match else None
 
@@ -61,7 +60,6 @@ def download_youtube_media(url: str, quality: str):
             'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
         })
     else:
-        # Optimized format selector to prevent merging failures
         ydl_opts.update({
             'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best[height<={quality}]/best',
         })
@@ -100,7 +98,6 @@ async def youtube_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text="❌ Download failed. The video might be restricted or unavailable.")
         return
 
-    # Check file size limit (Telegram 50MB restriction check)
     file_size = os.path.getsize(file_path)
     if file_size > 50 * 1024 * 1024:
         await query.edit_message_text(text="❌ File size exceeds Telegram's 50MB limit! Please choose a lower quality (e.g., 480p, 360p, or MP3).")
@@ -118,10 +115,8 @@ async def youtube_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open(file_path, 'rb') as video:
                 await context.bot.send_video(chat_id=query.message.chat_id, video=video, caption="Downloaded in HD ✨", supports_streaming=True)
         
-        # Delete the status message / buttons
         await query.message.delete()
 
-        # Clean up: Delete the user's original link message from the chat
         try:
             if query.message.reply_to_message:
                 await query.message.reply_to_message.delete()
@@ -132,7 +127,6 @@ async def youtube_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Upload Error: {e}")
         await query.edit_message_text(text="❌ Upload failed due to network timeout or file size restriction.")
     finally:
-        # Local memory cleanup: remove downloaded file from server storage
         if file_path and os.path.exists(file_path):
             try:
                 os.remove(file_path)
@@ -164,7 +158,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("720p 🎬", callback_data=f"yt_720_{yt_url}"),
             ],
             [
-                InlineRegistryButton := None,  # placeholder
                 InlineKeyboardButton("480p 🎬", callback_data=f"yt_480_{yt_url}"),
                 InlineKeyboardButton("360p 🎬", callback_data=f"yt_360_{yt_url}"),
             ],
@@ -176,8 +169,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🎬 **Select Video Quality / Format:**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
         return
 
-    # If it's not a YouTube link, you can optionally delete unwanted text messages or ignore them
-    # Here we send invalid link notice
     await update.message.reply_text(MESSAGES['invalid_link'])
 
 def main():
